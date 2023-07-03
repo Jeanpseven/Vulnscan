@@ -1,6 +1,9 @@
 import subprocess
 import requests
 from urllib.parse import urljoin
+import ascii
+
+ascii.exibir_ascii_art()
 
 def banner():
     print("===============================")
