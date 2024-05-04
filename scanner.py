@@ -107,28 +107,27 @@ def main():
         ip = input("Digite o IP para escanear: ")
         escanear_ip(ip)
     elif escolha == '3':
-    ips = listar_ips_na_rede()
-    if ips:
-        print("Lista de IPs na rede local:")
-        for i, ip in enumerate(ips, start=1):
-            print(f"{i}. {ip}")
-        escolha_ip = input("Escolha o número do IP para escanear (ou pressione Enter para digitar manualmente): ")
-        if escolha_ip.strip():  # Verifica se a entrada não está vazia
-            try:
-                escolha_ip = int(escolha_ip)
-                if 1 <= escolha_ip <= len(ips):
-                    ip_escolhido = ips[escolha_ip - 1]
-                    escanear_ip(ip_escolhido)
-                else:
+        ips = listar_ips_na_rede()
+        if ips:
+            print("Lista de IPs na rede local:")
+            for i, ip in enumerate(ips, start=1):
+                print(f"{i}. {ip}")
+            escolha_ip = input("Escolha o número do IP para escanear (ou pressione Enter para digitar manualmente): ")
+            if escolha_ip.strip():  # Verifica se a entrada não está vazia
+                try:
+                    escolha_ip = int(escolha_ip)
+                    if 1 <= escolha_ip <= len(ips):
+                        ip_escolhido = ips[escolha_ip - 1]
+                        escanear_ip(ip_escolhido)
+                    else:
+                        print("Escolha inválida.")
+                except ValueError:
                     print("Escolha inválida.")
-            except ValueError:
-                print("Escolha inválida.")
+            else:
+                ip_manual = input("Digite o IP ou alvo do host manualmente: ")
+                escanear_ip(ip_manual)
         else:
-            ip_manual = input("Digite o IP ou alvo do host manualmente: ")
-            escanear_ip(ip_manual)
-    else:
-        print("Não foi possível encontrar IPs na rede local.")
-
+            print("Não foi possível encontrar IPs na rede local.")
     elif escolha == '4':
         ips = listar_ips_na_rede()
         if ips:
