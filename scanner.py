@@ -1,64 +1,16 @@
 import subprocess
 import requests
+import nmap
 from urllib.parse import urljoin
-import ascii
-import netifaces
-
-ascii.exibir_ascii_art()
-
-def banner():
-    print("===============================")
-    print("      VERIFICAÇÃO DE DIRETÓRIOS")
-    print("===============================")
-
-def carregar_diretorios():
-    with open("lista_diretorios.txt", "r") as file:
-        diretorios = file.readlines()
-        diretorios = [diretorio.strip() for diretorio in diretorios]
-    return diretorios
-
-def procurar_diretorios_robots(site):
-    url_robots = urljoin(site, "robots.txt")
-    response = requests.get(url_robots)
-
-    if response.status_code == 200:
-        linhas = response.text.split("\n")
-        diretorios_permitidos = []
-        diretorios_desautorizados = []
-
-        for linha in linhas:
-            linha = linha.strip()
-            if linha.startswith("Allow:"):
-                diretorio = linha.split("Allow:")[1].strip()
-                diretorios_permitidos.append(diretorio)
-            elif linha.startswith("Disallow:"):
-                diretorio = linha.split("Disallow:")[1].strip()
-                diretorios_desautorizados.append(diretorio)
-
-        print("[+] Diretórios permitidos encontrados no robots.txt:")
-        for diretorio in diretorios_permitidos:
-            print(urljoin(site, diretorio))
-        
-        print("\n[-] Diretórios desautorizados encontrados no robots.txt:")
-        for diretorio in diretorios_desautorizados:
-            print(urljoin(site, diretorio))
-    elif response.status_code == 404:
-        print("[-] Arquivo robots.txt não encontrado.")
-    else:
-        print(f"[?] Erro ao acessar o arquivo robots.txt. Código de status: {response.status_code}")
-
-def analisar_exploit_db(diretorio):
-    # Implemente a pesquisa no Exploit Database aqui
-    print(f"    [-] Nenhuma exploração encontrada para {diretorio}.")
+import zoomeye
 
 def verificar_diretorios(site, diretorios):
     for diretorio in diretorios:
         url = urljoin(site, diretorio)
         response = requests.get(url)
-
         if response.status_code == 200:
             print(f"[+] Diretório encontrado: {url}")
-            analisar_exploit_db(diretorio)
+            # Você pode adicionar aqui a lógica para analisar com o ZoomEye
         elif response.status_code == 403:
             print(f"[-] Acesso proibido: {url}")
         elif response.status_code == 404:
@@ -66,24 +18,13 @@ def verificar_diretorios(site, diretorios):
         else:
             print(f"[?] Código de status desconhecido ({response.status_code}): {url}")
 
-def analisar_portas_e_servicos(target):
-    print(f"\n[+] Verificando portas e serviços em {target} com Nmap:")
-    try:
-        command = f"nmap -sV --script vuln {target}"
-        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        output, error = process.communicate()
-
-        print(output.decode())
-
-        if error:
-            print(f"[!] Ocorreu um erro ao executar o Nmap: {error.decode()}")
-
-    except Exception as e:
-        print('Erro ao verificar portas e serviços:', str(e))
+def carregar_diretorios():
+    with open("lista_diretorios.txt", "r") as file:
+        return file.read().splitlines()
 
 def listar_ips_na_rede():
     try:
-        command = "arp -aa"
+        command = "arp -a"
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, error = process.communicate()
 
@@ -91,64 +32,87 @@ def listar_ips_na_rede():
             print(f"[!] Ocorreu um erro ao listar os IPs na rede: {error.decode()}")
             return []
 
-        ips = set()
-        for line in output.decode().split('\n'):
+        ips = []
+        lines = output.decode().split("\n")
+        for line in lines:
             parts = line.split()
-            if len(parts) >= 4:
-                ip = parts[1]
-                ips.add(ip)
-        
-        return list(ips)
+            if len(parts) >= 2:
+                ip = parts[1].strip('()')
+                ips.append(ip)
 
+        return list(set(ips))  # Remover duplicatas
     except Exception as e:
-        print('Erro ao listar os IPs na rede:', str(e))
+        print(f"[!] Ocorreu um erro ao listar os IPs na rede: {str(e)}")
         return []
 
-def escanear_ip(ip):
-    diretorios = carregar_diretorios()
-    verificar_diretorios(f"http://{ip}", diretorios)
-    procurar_diretorios_robots(f"http://{ip}")
-    analisar_portas_e_servicos(ip)
+def escanear_ips_na_rede(ips):
+    scanner = nmap.PortScanner()
+    for i, ip in enumerate(ips, start=1):
+        print(f"{i}. {ip}")
+
+    escolha_ip = input("Escolha o número do IP para escanear: ")
+    try:
+        escolha_ip = int(escolha_ip)
+        if 1 <= escolha_ip <= len(ips):
+            escolha_ip = ips[escolha_ip - 1]
+
+            print(f"Escaneando IP {escolha_ip} com Nmap...")
+            scanner.scan(escolha_ip, arguments='-sV --script vuln')
+            print(f"Ip: {escolha_ip}")
+            for host in scanner.all_hosts():
+                print('Host : %s (%s)' % (host, scanner[host].hostname()))
+                print('State : %s' % scanner[host].state())
+                for proto in scanner[host].all_protocols():
+                    print('----------')
+                    print('Protocol : %s' % proto)
+
+                    lport = scanner[host][proto].keys()
+                    lport = sorted(lport)
+                    for port in lport:
+                        print('port : %s\tstate : %s' % (port, scanner[host][proto][port]['state']))
+        else:
+            print("Escolha inválida.")
+    except ValueError:
+        print("Escolha inválida.")
 
 def main():
-    banner()
     print("Escolha o tipo de scan:")
     print("1. Site")
     print("2. IP Específico")
     print("3. Listar IPs na Rede Local")
     print("4. Escanear Todos IPs na Rede Local")
-    escolha = input("Opção: ")
+    escolha = input("Escolha a opção: ")
 
     if escolha == '1':
-        target = input("Digite o site para verificar os diretórios: ")
+        site = input("Digite o site para verificar os diretórios: ")
         diretorios = carregar_diretorios()
-        verificar_diretorios(target, diretorios)
-        procurar_diretorios_robots(target)
-        analisar_portas_e_servicos(target)
+        verificar_diretorios(site, diretorios)
     elif escolha == '2':
-        target = input("Digite o endereço IP para verificar os diretórios: ")
-        escanear_ip(target)
+        ip = input("Digite o IP para escanear: ")
+        diretorios = carregar_diretorios()
+        verificar_diretorios(ip, diretorios)
     elif escolha == '3':
-        ips = listar_ips_na_rede()
-        if ips:
+        # Lógica para listar IPs na rede local usando ZoomEye
+        api_key = input("Digite sua chave de API do ZoomEye: ")
+        try:
+            zm = zoomeye.ZoomEye(api_key=api_key)
+            results = zm.host_search()
+            ips = [result['ip'] for result in results['matches']]
             print("Lista de IPs na rede local:")
             for i, ip in enumerate(ips, start=1):
                 print(f"{i}. {ip}")
-            escolha_ip = input("Escolha o IP para escanear: ")
-            if escolha_ip.isdigit() and 0 < int(escolha_ip) <= len(ips):
-                escanear_ip(ips[int(escolha_ip) - 1])
-            else:
-                print("Opção inválida.")
-        else:
-            print("Não foi possível encontrar IPs na rede local.")
+        except zoomeye.ZoomEyeException as e:
+            print('Erro ao listar IPs na rede:', str(e))
     elif escolha == '4':
-        ips = listar_ips_na_rede()
-        if ips:
-            print("Escanear todos os IPs na rede local:")
-            for ip in ips:
-                escanear_ip(ip)
-        else:
-            print("Não foi possível encontrar IPs na rede local.")
+        # Lógica para escanear todos os IPs na rede local usando ZoomEye
+        api_key = input("Digite sua chave de API do ZoomEye: ")
+        try:
+            zm = zoomeye.ZoomEye(api_key=api_key)
+            results = zm.host_search()
+            ips = [result['ip'] for result in results['matches']]
+            escanear_ips_na_rede(ips)
+        except zoomeye.ZoomEyeException as e:
+            print('Erro ao escanear IPs na rede:', str(e))
     else:
         print("Opção inválida.")
 
