@@ -91,14 +91,15 @@ def listar_ips_na_rede():
             print(f"[!] Ocorreu um erro ao listar os IPs na rede: {error.decode()}")
             return []
 
-        ips = []
+        ips = set()
         for line in output.decode().split('\n'):
             parts = line.split()
             if len(parts) >= 2:
                 ip = parts[1]
-                ips.append(ip)
+                if ip.startswith('192.168.') or ip.startswith('10.'):
+                    ips.add(ip)
         
-        return ips
+        return list(ips)
 
     except Exception as e:
         print('Erro ao listar os IPs na rede:', str(e))
