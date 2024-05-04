@@ -87,14 +87,22 @@ def listar_ips_na_rede():
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, error = process.communicate()
 
-        print("Lista de IPs na rede local:")
-        print(output.decode())
-
         if error:
             print(f"[!] Ocorreu um erro ao listar os IPs na rede: {error.decode()}")
+            return []
+
+        ips = []
+        for line in output.decode().split('\n'):
+            parts = line.split()
+            if len(parts) >= 2:
+                ip = parts[1]
+                ips.append(ip)
+        
+        return ips
 
     except Exception as e:
         print('Erro ao listar os IPs na rede:', str(e))
+        return []
 
 def escanear_ip(ip):
     diretorios = carregar_diretorios()
@@ -121,15 +129,31 @@ def main():
         target = input("Digite o endereço IP para verificar os diretórios: ")
         escanear_ip(target)
     elif escolha == '3':
-        listar_ips_na_rede()
-        escolha_ip = input("Digite o endereço IP para escanear: ")
-        escanear_ip(escolha_ip)
+        ips = listar_ips_na_rede()
+        if ips:
+            print("Lista de IPs na rede local:")
+            for i, ip in enumerate(ips):
+                print(f"{i+1}. {ip}")
+            escolha_ip = input("Escolha o número do IP para escanear: ")
+            try:
+                escolha_ip = int(escolha_ip)
+                if 1 <= escolha_ip <= len(ips):
+                    escolha_ip = ips[escolha_ip - 1]
+                    escanear_ip(escolha_ip)
+                else:
+                    print("Escolha inválida.")
+            except ValueError:
+                print("Escolha inválida.")
+        else:
+            print("Não foi possível encontrar IPs na rede local.")
     elif escolha == '4':
-        listar_ips_na_rede()
-        ips = ["192.168.1.1", "192.168.1.2", "192.168.1.3"]  # Substitua pelos IPs encontrados na rede local
-        for ip in ips:
-            print(f"\n[+] Escaneando IP: {ip}")
-            escanear_ip(ip)
+        ips = listar_ips_na_rede()
+        if ips:
+            for ip in ips:
+                print(f"\n[+] Escaneando IP: {ip}")
+                escanear_ip(ip)
+        else:
+            print("Não foi possível encontrar IPs na rede local.")
     else:
         print("Opção inválida.")
 
