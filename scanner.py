@@ -64,7 +64,6 @@ if ips:
         print(f"IP escolhido: {ip_escolhido}")
 else:
     print("Não foi possível encontrar IPs na rede local.")
-        return []
 
 def escanear_ip(ip):
     try:
