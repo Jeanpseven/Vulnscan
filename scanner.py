@@ -106,7 +106,7 @@ def main():
     elif escolha == '2':
         ip = input("Digite o IP para escanear: ")
         escanear_ip(ip)
-   elif escolha == '3':
+    elif escolha == '3':
     ips = listar_ips_na_rede()
     if ips:
         print("Lista de IPs na rede local:")
