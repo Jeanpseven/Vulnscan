@@ -83,7 +83,7 @@ def analisar_portas_e_servicos(target):
 
 def listar_ips_na_rede():
     try:
-        command = "arp -a"
+        command = "arp -aa"
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, error = process.communicate()
 
@@ -94,10 +94,9 @@ def listar_ips_na_rede():
         ips = set()
         for line in output.decode().split('\n'):
             parts = line.split()
-            if len(parts) >= 2:
+            if len(parts) >= 4:
                 ip = parts[1]
-                if ip.startswith('192.168.') or ip.startswith('10.'):
-                    ips.add(ip)
+                ips.add(ip)
         
         return list(ips)
 
@@ -133,25 +132,20 @@ def main():
         ips = listar_ips_na_rede()
         if ips:
             print("Lista de IPs na rede local:")
-            for i, ip in enumerate(ips):
-                print(f"{i+1}. {ip}")
-            escolha_ip = input("Escolha o número do IP para escanear: ")
-            try:
-                escolha_ip = int(escolha_ip)
-                if 1 <= escolha_ip <= len(ips):
-                    escolha_ip = ips[escolha_ip - 1]
-                    escanear_ip(escolha_ip)
-                else:
-                    print("Escolha inválida.")
-            except ValueError:
-                print("Escolha inválida.")
+            for i, ip in enumerate(ips, start=1):
+                print(f"{i}. {ip}")
+            escolha_ip = input("Escolha o IP para escanear: ")
+            if escolha_ip.isdigit() and 0 < int(escolha_ip) <= len(ips):
+                escanear_ip(ips[int(escolha_ip) - 1])
+            else:
+                print("Opção inválida.")
         else:
             print("Não foi possível encontrar IPs na rede local.")
     elif escolha == '4':
         ips = listar_ips_na_rede()
         if ips:
+            print("Escanear todos os IPs na rede local:")
             for ip in ips:
-                print(f"\n[+] Escaneando IP: {ip}")
                 escanear_ip(ip)
         else:
             print("Não foi possível encontrar IPs na rede local.")
