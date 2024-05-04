@@ -1,6 +1,5 @@
 import subprocess
 import requests
-import nmap
 from urllib.parse import urljoin
 import zoomeye
 
@@ -46,34 +45,13 @@ def listar_ips_na_rede():
         return []
 
 def escanear_ips_na_rede(ips):
-    scanner = nmap.PortScanner()
-    for i, ip in enumerate(ips, start=1):
-        print(f"{i}. {ip}")
-
-    escolha_ip = input("Escolha o número do IP para escanear: ")
-    try:
-        escolha_ip = int(escolha_ip)
-        if 1 <= escolha_ip <= len(ips):
-            escolha_ip = ips[escolha_ip - 1]
-
-            print(f"Escaneando IP {escolha_ip} com Nmap...")
-            scanner.scan(escolha_ip, arguments='-sV --script vuln')
-            print(f"Ip: {escolha_ip}")
-            for host in scanner.all_hosts():
-                print('Host : %s (%s)' % (host, scanner[host].hostname()))
-                print('State : %s' % scanner[host].state())
-                for proto in scanner[host].all_protocols():
-                    print('----------')
-                    print('Protocol : %s' % proto)
-
-                    lport = scanner[host][proto].keys()
-                    lport = sorted(lport)
-                    for port in lport:
-                        print('port : %s\tstate : %s' % (port, scanner[host][proto][port]['state']))
-        else:
-            print("Escolha inválida.")
-    except ValueError:
-        print("Escolha inválida.")
+    for ip in ips:
+        print(f"Escaneando IP {ip} com Nmap...")
+        try:
+            result = subprocess.run(["nmap", "-sV", "--script", "vuln", ip], capture_output=True, text=True)
+            print(result.stdout)
+        except Exception as e:
+            print(f"Erro ao escanear o IP {ip}:", str(e))
 
 def main():
     print("Escolha o tipo de scan:")
@@ -92,27 +70,19 @@ def main():
         diretorios = carregar_diretorios()
         verificar_diretorios(ip, diretorios)
     elif escolha == '3':
-        # Lógica para listar IPs na rede local usando ZoomEye
-        api_key = input("Digite sua chave de API do ZoomEye: ")
-        try:
-            zm = zoomeye.ZoomEye(api_key=api_key)
-            results = zm.host_search()
-            ips = [result['ip'] for result in results['matches']]
+        ips = listar_ips_na_rede()
+        if ips:
             print("Lista de IPs na rede local:")
             for i, ip in enumerate(ips, start=1):
                 print(f"{i}. {ip}")
-        except zoomeye.ZoomEyeException as e:
-            print('Erro ao listar IPs na rede:', str(e))
+        else:
+            print("Não foi possível encontrar IPs na rede local.")
     elif escolha == '4':
-        # Lógica para escanear todos os IPs na rede local usando ZoomEye
-        api_key = input("Digite sua chave de API do ZoomEye: ")
-        try:
-            zm = zoomeye.ZoomEye(api_key=api_key)
-            results = zm.host_search()
-            ips = [result['ip'] for result in results['matches']]
+        ips = listar_ips_na_rede()
+        if ips:
             escanear_ips_na_rede(ips)
-        except zoomeye.ZoomEyeException as e:
-            print('Erro ao escanear IPs na rede:', str(e))
+        else:
+            print("Não foi possível encontrar IPs na rede local.")
     else:
         print("Opção inválida.")
 
