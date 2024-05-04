@@ -8,7 +8,15 @@ import os
 API_KEY = "628333AE-BaB2-F0732-77c6-f3cb4c84e51"
 ZOOM_EYE_URL = "https://github.com/knownsec/ZoomEye-python/archive/refs/heads/main.zip"
 ZOOM_EYE_DIR = "ZoomEye-python-main"
-   
+
+def verificar_root():
+    return os.getuid() == 0
+
+if not verificar_root():
+    ascii.exibir_ascii_art()
+    print("Este script deve ser executado como root.")
+    sys.exit(1)
+
 def verificar_diretorios(site, diretorios):
     for diretorio in diretorios:
         url = urljoin(site, diretorio)
@@ -50,24 +58,16 @@ def escolher_ip(ips):
     try:
         escolha = int(escolha)
         if 1 <= escolha <= len(ips):
-            return ips[escolha - 1]
+            ip_escolhido = ips[escolha - 1]
+            escanear_ip(ip_escolhido)  # Chamando a função escanear_ip() com o IP selecionado
         else:
             print("Escolha inválida.")
     except ValueError:
         print("Escolha inválida.")
 
-# Testando a função
-ips = listar_ips_na_rede()
-if ips:
-    ip_escolhido = escolher_ip(ips)
-    if ip_escolhido:
-        print(f"IP escolhido: {ip_escolhido}")
-else:
-    print("Não foi possível encontrar IPs na rede local.")
-
 def escanear_ip(ip):
     try:
-        result = subprocess.run(["nmap", "-sN", "-sV", "-sS", "-A", "-v", "--script", "vuln", ip], capture_output=True, text=True)
+        result = subprocess.run(["nmap", "-sV", "--script", "vuln", ip], capture_output=True, text=True)
         resultnikto = subprocess.run(["nikto", "-h", ip], capture_output=True, text=True)
         print(result.stdout)
         print(resultnikto.stdout)
@@ -106,6 +106,7 @@ def search_devices(query, ip_prefix):
         return []
 
 def main():
+    verificar_root()
     ascii.exibir_ascii_art()
     print("Escolha o tipo de scan:")
     print("1. Site")
