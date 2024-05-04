@@ -2,7 +2,6 @@ import subprocess
 import requests
 from urllib.parse import urljoin
 import ascii
-import socket
 import netifaces
 
 ascii.exibir_ascii_art()
@@ -48,17 +47,9 @@ def procurar_diretorios_robots(site):
     else:
         print(f"[?] Erro ao acessar o arquivo robots.txt. Código de status: {response.status_code}")
 
-def procurar_exploit_db(query):
-    url = f"https://www.exploit-db.com/search?text={query}"
-    response = requests.get(url)
-
-    if response.status_code == 200:
-        # Extrair os resultados da página
-        # Aqui você precisaria analisar a página HTML para extrair as informações relevantes
-        print("Resultados da pesquisa no Exploit Database:")
-        print(response.text)
-    else:
-        print("Erro ao pesquisar no Exploit Database.")
+def analisar_exploit_db(diretorio):
+    # Implemente a pesquisa no Exploit Database aqui
+    print(f"    [-] Nenhuma exploração encontrada para {diretorio}.")
 
 def verificar_diretorios(site, diretorios):
     for diretorio in diretorios:
@@ -67,7 +58,7 @@ def verificar_diretorios(site, diretorios):
 
         if response.status_code == 200:
             print(f"[+] Diretório encontrado: {url}")
-            procurar_exploit_db(diretorio)
+            analisar_exploit_db(diretorio)
         elif response.status_code == 403:
             print(f"[-] Acesso proibido: {url}")
         elif response.status_code == 404:
@@ -90,25 +81,34 @@ def analisar_portas_e_servicos(target):
     except Exception as e:
         print('Erro ao verificar portas e serviços:', str(e))
 
-def get_local_ip():
-    # Obtém o endereço IP local
-    interfaces = netifaces.interfaces()
-    for interface in interfaces:
-        try:
-            addresses = netifaces.ifaddresses(interface)
-            ip = addresses[netifaces.AF_INET][0]['addr']
-            if ip.startswith(('192.168.', '10.')):
-                return ip
-        except KeyError:
-            pass
-    return None
+def listar_ips_na_rede():
+    try:
+        command = "arp -a"
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = process.communicate()
+
+        print("Lista de IPs na rede local:")
+        print(output.decode())
+
+        if error:
+            print(f"[!] Ocorreu um erro ao listar os IPs na rede: {error.decode()}")
+
+    except Exception as e:
+        print('Erro ao listar os IPs na rede:', str(e))
+
+def escanear_ip(ip):
+    diretorios = carregar_diretorios()
+    verificar_diretorios(f"http://{ip}", diretorios)
+    procurar_diretorios_robots(f"http://{ip}")
+    analisar_portas_e_servicos(ip)
 
 def main():
     banner()
     print("Escolha o tipo de scan:")
     print("1. Site")
     print("2. IP Específico")
-    print("3. IP na Rede Local")
+    print("3. Listar IPs na Rede Local")
+    print("4. Escanear Todos IPs na Rede Local")
     escolha = input("Opção: ")
 
     if escolha == '1':
@@ -119,16 +119,17 @@ def main():
         analisar_portas_e_servicos(target)
     elif escolha == '2':
         target = input("Digite o endereço IP para verificar os diretórios: ")
-        diretorios = carregar_diretorios()
-        verificar_diretorios(f"http://{target}", diretorios)
-        analisar_portas_e_servicos(target)
+        escanear_ip(target)
     elif escolha == '3':
-        local_ip = get_local_ip()
-        if local_ip:
-            print("Endereço IP local encontrado:", local_ip)
-            analisar_portas_e_servicos(local_ip)
-        else:
-            print("Não foi possível obter o endereço IP local.")
+        listar_ips_na_rede()
+        escolha_ip = input("Digite o endereço IP para escanear: ")
+        escanear_ip(escolha_ip)
+    elif escolha == '4':
+        listar_ips_na_rede()
+        ips = ["192.168.1.1", "192.168.1.2", "192.168.1.3"]  # Substitua pelos IPs encontrados na rede local
+        for ip in ips:
+            print(f"\n[+] Escaneando IP: {ip}")
+            escanear_ip(ip)
     else:
         print("Opção inválida.")
 
