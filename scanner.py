@@ -27,27 +27,43 @@ def carregar_diretorios():
     with open("lista_diretorios.txt", "r") as file:
         return file.read().splitlines()
 
+import netifaces
+
 def listar_ips_na_rede():
+    ips = []
     try:
-        command = "arp -a"
-        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        output, error = process.communicate()
-
-        if error:
-            print(f"[!] Ocorreu um erro ao listar os IPs na rede: {error.decode()}")
-            return []
-
-        ips = set()
-        for line in output.decode().split('\n'):
-            parts = line.split()
-            if len(parts) >= 2:
-                ip = parts[1]
-                if ip.startswith('192.168.') or ip.startswith('10.'):
-                    ips.add(ip)
-
-        return list(ips)
+        interfaces = netifaces.interfaces()
+        for interface in interfaces:
+            addresses = netifaces.ifaddresses(interface)
+            if netifaces.AF_INET in addresses:
+                for link in addresses[netifaces.AF_INET]:
+                    ips.append(link['addr'])
     except Exception as e:
-        print(f"[!] Ocorreu um erro ao listar os IPs na rede: {str(e)}")
+        print(f"Ocorreu um erro ao listar os IPs na rede: {str(e)}")
+    return ips
+
+def escolher_ip(ips):
+    print("Lista de IPs na rede local:")
+    for i, ip in enumerate(ips, start=1):
+        print(f"{i}. {ip}")
+    escolha = input("Escolha o número do IP para escanear: ")
+    try:
+        escolha = int(escolha)
+        if 1 <= escolha <= len(ips):
+            return ips[escolha - 1]
+        else:
+            print("Escolha inválida.")
+    except ValueError:
+        print("Escolha inválida.")
+
+# Testando a função
+ips = listar_ips_na_rede()
+if ips:
+    ip_escolhido = escolher_ip(ips)
+    if ip_escolhido:
+        print(f"IP escolhido: {ip_escolhido}")
+else:
+    print("Não foi possível encontrar IPs na rede local.")
         return []
 
 def escanear_ip(ip):
