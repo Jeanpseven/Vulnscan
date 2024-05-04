@@ -48,9 +48,17 @@ def procurar_diretorios_robots(site):
     else:
         print(f"[?] Erro ao acessar o arquivo robots.txt. Código de status: {response.status_code}")
 
-def analisar_exploit_db(diretorio):
-    # Implemente a pesquisa no Exploit Database aqui
-    print(f"    [-] Nenhuma exploração encontrada para {diretorio}.")
+def procurar_exploit_db(query):
+    url = f"https://www.exploit-db.com/search?text={query}"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        # Extrair os resultados da página
+        # Aqui você precisaria analisar a página HTML para extrair as informações relevantes
+        print("Resultados da pesquisa no Exploit Database:")
+        print(response.text)
+    else:
+        print("Erro ao pesquisar no Exploit Database.")
 
 def verificar_diretorios(site, diretorios):
     for diretorio in diretorios:
@@ -59,7 +67,7 @@ def verificar_diretorios(site, diretorios):
 
         if response.status_code == 200:
             print(f"[+] Diretório encontrado: {url}")
-            analisar_exploit_db(diretorio)
+            procurar_exploit_db(diretorio)
         elif response.status_code == 403:
             print(f"[-] Acesso proibido: {url}")
         elif response.status_code == 404:
@@ -81,6 +89,19 @@ def analisar_portas_e_servicos(target):
 
     except Exception as e:
         print('Erro ao verificar portas e serviços:', str(e))
+
+def get_local_ip():
+    # Obtém o endereço IP local
+    interfaces = netifaces.interfaces()
+    for interface in interfaces:
+        try:
+            addresses = netifaces.ifaddresses(interface)
+            ip = addresses[netifaces.AF_INET][0]['addr']
+            if ip.startswith(('192.168.', '10.')):
+                return ip
+        except KeyError:
+            pass
+    return None
 
 def main():
     banner()
