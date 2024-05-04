@@ -1,5 +1,6 @@
 import subprocess
 import requests
+import ascii
 from urllib.parse import urljoin
 import sys
 import os
@@ -7,7 +8,7 @@ import os
 API_KEY = "628333AE-BaB2-F0732-77c6-f3cb4c84e51"
 ZOOM_EYE_URL = "https://github.com/knownsec/ZoomEye-python/archive/refs/heads/main.zip"
 ZOOM_EYE_DIR = "ZoomEye-python-main"
-
+   
 def verificar_diretorios(site, diretorios):
     for diretorio in diretorios:
         url = urljoin(site, diretorio)
@@ -52,7 +53,9 @@ def listar_ips_na_rede():
 def escanear_ip(ip):
     try:
         result = subprocess.run(["nmap", "-sN", "-sV", "-sS", "-A", "-v", "--script", "vuln", ip], capture_output=True, text=True)
+        resultnikto = subprocess.run(["nikto", "-h", ip], capture_output=True, text=True)
         print(result.stdout)
+        print(resultnikto.stdout)
     except Exception as e:
         print(f"Erro ao escanear o IP {ip}:", str(e))
 
@@ -88,6 +91,7 @@ def search_devices(query, ip_prefix):
         return []
 
 def main():
+    ascii.exibir_ascii_art()
     print("Escolha o tipo de scan:")
     print("1. Site")
     print("2. IP Específico")
@@ -112,8 +116,8 @@ def main():
             try:
                 escolha_ip = int(escolha_ip)
                 if 1 <= escolha_ip <= len(ips):
-                    escolha_ip = ips[escolha_ip - 1]
-                    escanear_ip(escolha_ip)
+                    ip_escolhido = ips[escolha_ip - 1]
+                    escanear_ip(ip_escolhido)
                 else:
                     print("Escolha inválida.")
             except ValueError:
