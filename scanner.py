@@ -67,7 +67,7 @@ def escolher_ip(ips):
 
 def escanear_ip(ip):
     try:
-        result = subprocess.run(["nmap", "-sV", "--script", "vuln", ip], capture_output=True, text=True)
+        result = subprocess.run(["nmap", "-v", "-sS -Pn --open", "--script", "vuln", ip], capture_output=True, text=True)
         resultnikto = subprocess.run(["nikto", "-h", ip], capture_output=True, text=True)
         print(result.stdout)
         print(resultnikto.stdout)
